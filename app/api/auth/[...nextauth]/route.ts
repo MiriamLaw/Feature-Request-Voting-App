@@ -4,50 +4,52 @@ import NextAuth from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
 import { prisma } from "@/lib/prisma"
 
-export const authOptions = {
+const handler = NextAuth({
   adapter: PrismaAdapter(prisma),
-  pages: {
-    signIn: "/login",
-  },
   session: {
     strategy: "jwt",
+  },
+  pages: {
+    signIn: "/login",
   },
   providers: [
     CredentialsProvider({
       name: "Credentials",
       credentials: {
         email: { label: "Email", type: "email" },
-        password: { label: "Password", type: "password" },
+        password: { label: "Password", type: "password" }
       },
       async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-          return null
+          return null;
         }
 
         const user = await prisma.user.findUnique({
           where: {
-            email: credentials.email,
-          },
-        })
+            email: credentials.email
+          }
+        });
 
         if (!user || !user.password) {
-          return null
+          return null;
         }
 
-        const isValid = await compare(credentials.password, user.password)
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password
+        );
 
-        if (!isValid) {
-          return null
+        if (!isPasswordValid) {
+          return null;
         }
 
         return {
           id: user.id,
           email: user.email,
           name: user.name,
-          role: user.role,
-        }
-      },
-    }),
+        };
+      }
+    })
   ],
   callbacks: {
     session: ({ session, token }) => {
@@ -56,23 +58,20 @@ export const authOptions = {
         user: {
           ...session.user,
           id: token.id,
-          role: token.role,
         },
-      }
+      };
     },
     jwt: ({ token, user }) => {
       if (user) {
         return {
           ...token,
           id: user.id,
-          role: user.role,
-        }
+        };
       }
-      return token
+      return token;
     },
   },
-}
+});
 
-const handler = NextAuth(authOptions)
-export { handler as GET, handler as POST }
+export { handler as GET, handler as POST };
 
