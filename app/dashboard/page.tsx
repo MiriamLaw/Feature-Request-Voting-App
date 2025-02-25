@@ -4,22 +4,37 @@ import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import FeatureCard from '../components/FeatureCard';
 
+// Define the Feature type
+type Feature = {
+  id: string;
+  title: string;
+  description: string;
+  votes: number;
+  hasVoted: boolean;
+  createdAt: string;
+  author: {
+    name: string;
+  };
+};
+
 export default function DashboardPage() {
   const { data: session } = useSession();
   const router = useRouter();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
-  const [features, setFeatures] = useState([]);
+  const [features, setFeatures] = useState<Feature[]>([]);
   const [error, setError] = useState('');
 
-  // Fetch features on component mount and after submission
   const fetchFeatures = async () => {
     try {
       const response = await fetch('/api/features');
       const data = await response.json();
+      
+      // Keep features in their original order (newest first)
       setFeatures(data);
     } catch (error) {
       console.error('Failed to fetch features:', error);
+      setError(error instanceof Error ? error.message : 'Failed to fetch features');
     }
   };
 
@@ -54,10 +69,10 @@ export default function DashboardPage() {
       setTitle('');
       setDescription('');
       setError('');
-      await fetchFeatures(); // Make sure to await the fetch
+      await fetchFeatures();
     } catch (error) {
       console.error('Submission error:', error);
-      setError(error.message || 'Failed to submit feature request');
+      setError(error instanceof Error ? error.message : 'Failed to submit feature request');
     }
   };
 
@@ -148,10 +163,10 @@ export default function DashboardPage() {
             ) : (
               features.map((feature) => (
                 <FeatureCard 
-                  key={feature.id} 
+                  key={`${feature.id}-${feature.votes}`}
                   feature={feature} 
                   onVote={async () => {
-                    await fetchFeatures(); // Re-fetch all features after vote
+                    await fetchFeatures();
                   }}
                 />
               ))

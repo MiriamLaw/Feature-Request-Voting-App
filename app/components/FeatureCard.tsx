@@ -1,5 +1,5 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { useSession } from 'next-auth/react';
 
 type Feature = {
@@ -18,6 +18,13 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
   const { data: session } = useSession();
   const [isVoting, setIsVoting] = useState(false);
   const [error, setError] = useState('');
+  const [localHasVoted, setLocalHasVoted] = useState(feature.hasVoted);
+  const [localVoteCount, setLocalVoteCount] = useState(feature.votes);
+
+  useEffect(() => {
+    setLocalHasVoted(feature.hasVoted);
+    setLocalVoteCount(feature.votes);
+  }, [feature.hasVoted, feature.votes]);
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -30,28 +37,41 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
     });
   };
 
-  const handleVote = async () => {
-    if (!session) return;
+  const handleVote = async (e: React.MouseEvent) => {
+    e.stopPropagation();
+    if (!session || isVoting) return;
+    
     setIsVoting(true);
     setError('');
     
+    const targetFeatureId = feature.id;
+    const isAdding = !localHasVoted;
+    
+    console.log('Voting on feature:', {
+      id: targetFeatureId,
+      title: feature.title,
+      action: isAdding ? 'adding vote' : 'removing vote'
+    });
+    
     try {
-      console.log('Voting for feature:', feature.id, feature.hasVoted ? 'remove vote' : 'add vote');
-      
-      const response = await fetch(`/api/features/${feature.id}/vote`, {
-        method: feature.hasVoted ? 'DELETE' : 'POST',
+      const response = await fetch(`/api/features/${targetFeatureId}/vote`, {
+        method: isAdding ? 'POST' : 'DELETE',
       });
       
-      const data = await response.json();
-      
       if (!response.ok) {
+        const data = await response.json();
         throw new Error(data.error || 'Failed to vote');
       }
+
+      // Update local state
+      setLocalHasVoted(isAdding);
+      setLocalVoteCount(prev => isAdding ? prev + 1 : prev - 1);
       
+      // Refresh the full list
       await onVote();
     } catch (error) {
       console.error('Vote error:', error);
-      setError(error.message);
+      setError(error instanceof Error ? error.message : 'Failed to vote');
     } finally {
       setIsVoting(false);
     }
@@ -72,28 +92,49 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
         <button
           onClick={handleVote}
           disabled={isVoting || !session}
-          className={`flex items-center space-x-1 px-4 py-2 rounded-md ${
-            feature.hasVoted
-              ? 'bg-indigo-100 text-indigo-700'
-              : 'bg-indigo-600 text-white hover:bg-indigo-700'
-          } disabled:opacity-50`}
-          title={!session ? 'Please login to vote' : ''}
+          className={`flex items-center space-x-2 px-4 py-2 rounded-md ${
+            localHasVoted
+              ? 'bg-red-100 text-red-700 hover:bg-red-200'
+              : 'bg-green-600 text-white hover:bg-green-700'
+          } disabled:opacity-50 transition-colors`}
+          title={!session 
+            ? 'Please login to vote' 
+            : localHasVoted 
+              ? 'Click to remove vote' 
+              : 'Click to vote'
+          }
           data-feature-id={feature.id}
         >
-          <span>{feature.votes}</span>
-          <svg
-            className="w-5 h-5"
-            fill="none"
-            stroke="currentColor"
-            viewBox="0 0 24 24"
-          >
-            <path
-              strokeLinecap="round"
-              strokeLinejoin="round"
-              strokeWidth={2}
-              d="M5 15l7-7 7 7"
-            />
-          </svg>
+          <span>{localVoteCount}</span>
+          {localHasVoted ? (
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M20 12H4"
+              />
+            </svg>
+          ) : (
+            <svg
+              className="w-5 h-5"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 6v12m6-6H6"
+              />
+            </svg>
+          )}
         </button>
       </div>
       {error && (

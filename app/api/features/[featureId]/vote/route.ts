@@ -13,31 +13,36 @@ export async function POST(
       return NextResponse.json({ error: 'Unauthorized' }, { status: 401 });
     }
 
-    // Check if vote already exists
-    const existingVote = await prisma.vote.findUnique({
-      where: {
-        userId_featureId: {
-          userId: session.user.id,
-          featureId: params.featureId,
-        },
-      },
-    });
+    const featureId = params.featureId;
 
-    if (existingVote) {
-      return NextResponse.json(
-        { error: 'Already voted' },
-        { status: 400 }
-      );
-    }
-
-    const vote = await prisma.vote.create({
+    // Create the vote
+    await prisma.vote.create({
       data: {
         userId: session.user.id,
-        featureId: params.featureId,
+        featureId: featureId,
       },
     });
 
-    return NextResponse.json(vote);
+    // Get updated feature data
+    const updatedFeature = await prisma.feature.findUnique({
+      where: { id: featureId },
+      include: {
+        votes: true,
+        author: {
+          select: { name: true }
+        }
+      }
+    });
+
+    if (!updatedFeature) {
+      return NextResponse.json({ error: 'Feature not found' }, { status: 404 });
+    }
+
+    return NextResponse.json({
+      id: updatedFeature.id,
+      votes: updatedFeature.votes.length,
+      hasVoted: true
+    });
   } catch (error) {
     console.error('Vote error:', error);
     return NextResponse.json(
