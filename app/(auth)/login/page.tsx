@@ -26,7 +26,7 @@ export default function LoginPage() {
       }
 
       if (result?.ok) {
-        router.push('/'); // Redirect to home page or dashboard
+        router.push('/dashboard'); // Changed from '/' to '/dashboard'
         router.refresh();
       }
     } catch (error) {
