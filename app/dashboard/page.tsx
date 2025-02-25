@@ -11,6 +11,7 @@ type Feature = {
   description: string;
   votes: number;
   hasVoted: boolean;
+  status: string;
   createdAt: string;
   author: {
     name: string;
