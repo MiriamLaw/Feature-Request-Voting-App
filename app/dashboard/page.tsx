@@ -1,6 +1,6 @@
 'use client';
 import { useState, useEffect } from 'react';
-import { useSession } from 'next-auth/react';
+import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import FeatureCard from '../components/FeatureCard';
 
@@ -61,9 +61,24 @@ export default function DashboardPage() {
     }
   };
 
+  const handleLogout = async () => {
+    await signOut({ redirect: true, callbackUrl: '/login' });
+  };
+
   return (
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+        {/* Add Logout Button */}
+        <div className="flex justify-between items-center mb-6">
+          <h1 className="text-2xl font-bold text-gray-900">Feature Dashboard</h1>
+          <button
+            onClick={handleLogout}
+            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
+          >
+            Logout
+          </button>
+        </div>
+
         {/* Feature Submission Form */}
         <div className="bg-white rounded-lg shadow p-6 mb-6">
           <h2 className="text-xl font-semibold mb-4">Submit a Feature Request</h2>
@@ -135,7 +150,9 @@ export default function DashboardPage() {
                 <FeatureCard 
                   key={feature.id} 
                   feature={feature} 
-                  onVote={fetchFeatures}
+                  onVote={async () => {
+                    await fetchFeatures(); // Re-fetch all features after vote
+                  }}
                 />
               ))
             )}

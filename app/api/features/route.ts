@@ -1,6 +1,6 @@
 import { getServerSession } from "next-auth/next"
 import { NextResponse } from "next/server"
-import { authOptions } from "../auth/[...nextauth]/route"
+import { authOptions } from "@/app/api/auth/[...nextauth]/route"
 import { prisma } from "@/lib/prisma"
 
 export async function GET() {
@@ -17,22 +17,20 @@ export async function GET() {
         },
         votes: true,
       },
-      orderBy: {
-        votes: {
-          _count: 'desc',
-        },
-      },
     })
 
-    // Transform the data to include vote count and user's vote status
-    const transformedFeatures = features.map(feature => ({
-      ...feature,
-      votes: feature.votes.length,
-      hasVoted: userId ? feature.votes.some(vote => vote.userId === userId) : false,
-    }))
+    // Transform and sort the features by vote count
+    const transformedFeatures = features
+      .map(feature => ({
+        ...feature,
+        votes: feature.votes.length,
+        hasVoted: userId ? feature.votes.some(vote => vote.userId === userId) : false,
+      }))
+      .sort((a, b) => b.votes - a.votes) // Sort by vote count, highest first
 
     return NextResponse.json(transformedFeatures)
   } catch (error) {
+    console.error('Fetch features error:', error)
     return NextResponse.json(
       { error: 'Failed to fetch features' },
       { status: 500 }

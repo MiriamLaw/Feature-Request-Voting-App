@@ -70,11 +70,11 @@ model Feature {
 
 model Vote {
   id        String   @id @default(cuid())
-  createdAt DateTime @default(now())
-  featureId String
   userId    String
-  feature   Feature  @relation(fields: [featureId], references: [id], onDelete: Cascade)
-  user      User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+  featureId String
+  user      User     @relation(fields: [userId], references: [id])
+  feature   Feature  @relation(fields: [featureId], references: [id])
+  createdAt DateTime @default(now())
 
   @@unique([userId, featureId])
 }

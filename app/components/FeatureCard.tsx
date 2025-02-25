@@ -17,6 +17,7 @@ type Feature = {
 export default function FeatureCard({ feature, onVote }: { feature: Feature; onVote: () => void }) {
   const { data: session } = useSession();
   const [isVoting, setIsVoting] = useState(false);
+  const [error, setError] = useState('');
 
   const formatDateTime = (dateString: string) => {
     const date = new Date(dateString);
@@ -32,16 +33,25 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
   const handleVote = async () => {
     if (!session) return;
     setIsVoting(true);
+    setError('');
+    
     try {
+      console.log('Voting for feature:', feature.id, feature.hasVoted ? 'remove vote' : 'add vote');
+      
       const response = await fetch(`/api/features/${feature.id}/vote`, {
         method: feature.hasVoted ? 'DELETE' : 'POST',
       });
       
-      if (response.ok) {
-        onVote();
+      const data = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(data.error || 'Failed to vote');
       }
+      
+      await onVote();
     } catch (error) {
-      console.error('Failed to vote:', error);
+      console.error('Vote error:', error);
+      setError(error.message);
     } finally {
       setIsVoting(false);
     }
@@ -67,6 +77,8 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
               ? 'bg-indigo-100 text-indigo-700'
               : 'bg-indigo-600 text-white hover:bg-indigo-700'
           } disabled:opacity-50`}
+          title={!session ? 'Please login to vote' : ''}
+          data-feature-id={feature.id}
         >
           <span>{feature.votes}</span>
           <svg
@@ -84,6 +96,11 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
           </svg>
         </button>
       </div>
+      {error && (
+        <div className="mt-2 text-sm text-red-600">
+          {error}
+        </div>
+      )}
     </div>
   );
 } 
