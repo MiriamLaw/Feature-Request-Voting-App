@@ -3,20 +3,8 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import FeatureCard from '../components/FeatureCard';
-
-// Define the Feature type
-type Feature = {
-  id: string;
-  title: string;
-  description: string;
-  votes: number;
-  hasVoted: boolean;
-  status: string;
-  createdAt: string;
-  author: {
-    name: string;
-  };
-};
+import { isAdmin } from '@/lib/auth';
+import { Feature } from '@/app/types/feature';
 
 export default function DashboardPage() {
   const { data: session } = useSession();
@@ -84,15 +72,24 @@ export default function DashboardPage() {
   return (
     <div className="min-h-screen bg-gray-100 py-6">
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
-        {/* Add Logout Button */}
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Feature Dashboard</h1>
-          <button
-            onClick={handleLogout}
-            className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-          >
-            Logout
-          </button>
+          <div className="flex gap-4">
+            {session?.user?.email && isAdmin(session.user.email) && (
+              <a
+                href="/admin"
+                className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"
+              >
+                Admin Dashboard
+              </a>
+            )}
+            <button
+              onClick={handleLogout}
+              className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-red-600 hover:bg-red-700"
+            >
+              Logout
+            </button>
+          </div>
         </div>
 
         {/* Feature Submission Form */}
