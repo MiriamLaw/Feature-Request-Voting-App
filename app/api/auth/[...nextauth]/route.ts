@@ -1,8 +1,8 @@
 import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import NextAuth, { AuthOptions } from "next-auth"
+import NextAuth, { AuthOptions, User } from "next-auth"
 import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
-import { authenticateUser } from "@/lib/auth"
+import { prisma } from "../../../../lib/prisma"
+import { authenticateUser } from "../../../lib/auth"
 
 export const authOptions: AuthOptions = {
   adapter: PrismaAdapter(prisma),
@@ -19,15 +19,25 @@ export const authOptions: AuthOptions = {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials) {
+      async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
           return null;
         }
 
-        return authenticateUser({
+        const user = await authenticateUser({
           email: credentials.email,
           password: credentials.password,
         });
+
+        if (!user) {
+          return null;
+        }
+
+        return {
+          id: user.id,
+          email: user.email,
+          name: user.name,
+        };
       }
     })
   ],
