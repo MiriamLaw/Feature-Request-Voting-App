@@ -22,6 +22,7 @@ export const authOptions: AuthOptions = {
       },
       async authorize(credentials): Promise<User | null> {
         if (!credentials?.email || !credentials?.password) {
+
           return null;
         }
 
@@ -31,6 +32,7 @@ export const authOptions: AuthOptions = {
         });
 
         if (!user) {
+          
           return null;
         }
 
