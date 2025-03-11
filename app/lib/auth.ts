@@ -1,5 +1,5 @@
 import { compare } from 'bcryptjs';
-import { prisma } from '../../lib/prisma';
+import { prisma } from '@/lib/prisma';
 
 export interface AuthenticateParams {
   email: string;
