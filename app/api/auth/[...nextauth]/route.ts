@@ -1,38 +1,48 @@
-import { PrismaAdapter } from "@next-auth/prisma-adapter"
-import NextAuth from "next-auth"
-import type { AuthOptions, User } from "next-auth"
-import CredentialsProvider from "next-auth/providers/credentials"
-import { prisma } from "@/lib/prisma"
-import { authenticateUser } from "@/lib/auth"
+import { PrismaAdapter } from "@auth/prisma-adapter";
+import { NextAuthOptions } from "next-auth";
+import { Adapter } from "next-auth/adapters";
+import GoogleProvider from "next-auth/providers/google";
+import CredentialsProvider from "next-auth/providers/credentials";
+import { PrismaClient } from "@prisma/client";
+import { compare } from "bcrypt";
+import NextAuth from "next-auth/next";
 
-export const authOptions: AuthOptions = {
-  adapter: PrismaAdapter(prisma),
-  session: {
-    strategy: "jwt",
-  },
-  pages: {
-    signIn: "/login",
-  },
+const prisma = new PrismaClient();
+
+export const authOptions: NextAuthOptions = {
+  adapter: PrismaAdapter(prisma) as Adapter,
   providers: [
+    GoogleProvider({
+      clientId: process.env.GOOGLE_ID!,
+      clientSecret: process.env.GOOGLE_SECRET!,
+    }),
     CredentialsProvider({
-      name: "Credentials",
+      name: "credentials",
       credentials: {
         email: { label: "Email", type: "email" },
         password: { label: "Password", type: "password" }
       },
-      async authorize(credentials): Promise<User | null> {
+      async authorize(credentials) {
         if (!credentials?.email || !credentials?.password) {
-
           return null;
         }
 
-        const user = await authenticateUser({
-          email: credentials.email,
-          password: credentials.password,
+        const user = await prisma.user.findUnique({
+          where: {
+            email: credentials.email
+          }
         });
 
-        if (!user) {
-          
+        if (!user || !user.password) {
+          return null;
+        }
+
+        const isPasswordValid = await compare(
+          credentials.password,
+          user.password
+        );
+
+        if (!isPasswordValid) {
           return null;
         }
 
@@ -40,30 +50,32 @@ export const authOptions: AuthOptions = {
           id: user.id,
           email: user.email,
           name: user.name,
+          image: user.image,
         };
       }
     })
   ],
+  session: {
+    strategy: "jwt"
+  },
+  pages: {
+    signIn: "/login",
+  },
   callbacks: {
-    session: ({ session, token }) => {
-      return {
-        ...session,
-        user: {
-          ...session.user,
-          id: token.id,
-        },
-      };
+    async session({ session, token }) {
+      if (session.user) {
+        session.user.id = token.sub!;
+      }
+      return session;
     },
-    jwt: ({ token, user }) => {
+    async jwt({ token, user }) {
       if (user) {
-        return {
-          ...token,
-          id: user.id,
-        };
+        token.sub = user.id;
       }
       return token;
-    },
+    }
   },
+  debug: process.env.NODE_ENV === "development",
 };
 
 const handler = NextAuth(authOptions);
