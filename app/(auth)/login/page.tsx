@@ -12,25 +12,13 @@ export default function LoginPage() {
   const handleGoogleSignIn = async () => {
     setIsLoading(true);
     try {
-      const result = await signIn('google', {
-        redirect: false,
+      await signIn('google', {
         callbackUrl: '/dashboard',
-        prompt: 'select_account'
+        redirect: true
       });
-
-      if (result?.error) {
-        setError('Error signing in with Google');
-        return;
-      }
-
-      if (result?.ok) {
-        router.push('/dashboard');
-        router.refresh();
-      }
     } catch (error) {
       console.error('Google sign-in error:', error);
       setError('An error occurred during Google sign-in');
-    } finally {
       setIsLoading(false);
     }
   };
