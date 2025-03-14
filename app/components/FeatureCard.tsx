@@ -33,18 +33,15 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
     setIsVoting(true);
     setError('');
     
-    const targetFeatureId = feature.id;
-    const isAdding = !localHasVoted;
-    
-    console.log('Voting on feature:', {
-      id: targetFeatureId,
-      title: feature.title,
-      action: isAdding ? 'adding vote' : 'removing vote'
-    });
-    
     try {
-      const response = await fetch(`/api/features/${targetFeatureId}/vote`, {
-        method: isAdding ? 'POST' : 'DELETE',
+      const response = await fetch('/api/vote', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({
+          featureId: feature.id,
+        }),
       });
       
       if (!response.ok) {
@@ -52,15 +49,21 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
         throw new Error(data.error || 'Failed to vote');
       }
 
-      // Update local state
-      setLocalHasVoted(isAdding);
-      setLocalVoteCount(prev => isAdding ? prev + 1 : prev - 1);
+      const data = await response.json();
       
-      // Refresh the full list
-      await onVote();
+      // Update local state based on server response
+      setLocalHasVoted(data.hasVoted);
+      setLocalVoteCount(data.voteCount);
+      
+      // Notify parent component to refresh the list if needed
+      onVote();
     } catch (error) {
       console.error('Vote error:', error);
       setError(error instanceof Error ? error.message : 'Failed to vote');
+      
+      // Revert local state on error
+      setLocalHasVoted(feature.hasVoted);
+      setLocalVoteCount(feature.votes);
     } finally {
       setIsVoting(false);
     }
@@ -114,7 +117,6 @@ export default function FeatureCard({ feature, onVote }: { feature: Feature; onV
               ? 'Click to remove vote' 
               : 'Click to vote'
           }
-          data-feature-id={feature.id}
         >
           <span>{localVoteCount}</span>
           {localHasVoted ? (

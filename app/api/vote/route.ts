@@ -14,6 +14,7 @@ export async function POST(req: Request) {
     const json = await req.json()
     const { featureId } = json
 
+    // First check if the user has already voted
     const existingVote = await prisma.vote.findUnique({
       where: {
         userId_featureId: {
@@ -23,25 +24,58 @@ export async function POST(req: Request) {
       },
     })
 
+    let result;
+    
     if (existingVote) {
+      // Remove the vote
       await prisma.vote.delete({
         where: {
-          id: existingVote.id,
-        },
+          id: existingVote.id
+        }
       })
-      return NextResponse.json({ message: "Vote removed" })
+      
+      // Get updated count after deletion
+      const updatedFeature = await prisma.feature.findUnique({
+        where: { id: featureId },
+        include: {
+          _count: {
+            select: { votes: true }
+          }
+        }
+      })
+
+      result = {
+        hasVoted: false,
+        voteCount: updatedFeature?._count.votes ?? 0
+      }
+    } else {
+      // Create new vote
+      await prisma.vote.create({
+        data: {
+          userId: session.user.id,
+          featureId,
+        }
+      })
+
+      // Get updated count after creation
+      const updatedFeature = await prisma.feature.findUnique({
+        where: { id: featureId },
+        include: {
+          _count: {
+            select: { votes: true }
+          }
+        }
+      })
+
+      result = {
+        hasVoted: true,
+        voteCount: updatedFeature?._count.votes ?? 0
+      }
     }
 
-    const vote = await prisma.vote.create({
-      data: {
-        userId: session.user.id,
-        featureId,
-      },
-    })
-
-    return NextResponse.json(vote)
+    return NextResponse.json(result)
   } catch (error) {
-    console.error(error)
+    console.error("Vote error:", error)
     return new NextResponse("Internal Error", { status: 500 })
   }
 }
