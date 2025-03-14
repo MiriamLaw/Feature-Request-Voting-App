@@ -7,12 +7,16 @@ export async function POST(req: Request) {
   try {
     const session = await getServerSession(authOptions)
 
-    if (!session) {
-      return new NextResponse("Unauthorized", { status: 401 })
+    if (!session?.user?.id) {
+      return NextResponse.json({ error: "Unauthorized" }, { status: 401 })
     }
 
     const json = await req.json()
     const { featureId } = json
+
+    if (!featureId) {
+      return NextResponse.json({ error: "Feature ID is required" }, { status: 400 })
+    }
 
     // First check if the user has already voted
     const existingVote = await prisma.vote.findUnique({
@@ -76,7 +80,7 @@ export async function POST(req: Request) {
     return NextResponse.json(result)
   } catch (error) {
     console.error("Vote error:", error)
-    return new NextResponse("Internal Error", { status: 500 })
+    return NextResponse.json({ error: "Internal server error" }, { status: 500 })
   }
 }
 

@@ -10,16 +10,13 @@ export default function LoginPage() {
   const [isLoading, setIsLoading] = useState(false);
 
   const handleGoogleSignIn = async () => {
-    setIsLoading(true);
     try {
       await signIn('google', {
-        callbackUrl: '/dashboard',
-        redirect: true
+        callbackUrl: '/dashboard'
       });
     } catch (error) {
       console.error('Google sign-in error:', error);
       setError('An error occurred during Google sign-in');
-      setIsLoading(false);
     }
   };
 
