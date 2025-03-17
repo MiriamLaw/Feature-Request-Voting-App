@@ -50,3 +50,15 @@ next-env.d.ts
 **/public/sw.js.map
 **/public/workbox-*.js.map
 **/public/worker-*.js.map
+
+
+  # AWS deployment output files
+   *-output.env
+   *.env
+   vpc-output.env
+   rds-output.env
+   secrets-output.env
+   certificate-output.env
+   route53-output.env
+   ecs-output.env
+   domain-output.env
