@@ -38,19 +38,8 @@ export async function POST(req: Request) {
         }
       })
       
-      // Get updated count after deletion
-      const updatedFeature = await prisma.feature.findUnique({
-        where: { id: featureId },
-        include: {
-          _count: {
-            select: { votes: true }
-          }
-        }
-      })
-
       result = {
-        hasVoted: false,
-        voteCount: updatedFeature?._count.votes ?? 0
+        hasVoted: false
       }
     } else {
       // Create new vote
@@ -61,19 +50,8 @@ export async function POST(req: Request) {
         }
       })
 
-      // Get updated count after creation
-      const updatedFeature = await prisma.feature.findUnique({
-        where: { id: featureId },
-        include: {
-          _count: {
-            select: { votes: true }
-          }
-        }
-      })
-
       result = {
-        hasVoted: true,
-        voteCount: updatedFeature?._count.votes ?? 0
+        hasVoted: true
       }
     }
 
