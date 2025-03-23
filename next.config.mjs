@@ -21,6 +21,31 @@ const nextConfig = {
     parallelServerBuildTraces: true,
     parallelServerCompiles: true,
   },
+  output: 'standalone',
+  poweredByHeader: false,
+  compress: true,
+  reactStrictMode: true,
+  swcMinify: true,
+  basePath: '',
+  assetPrefix: '',
+  distDir: '.next',
+  generateEtags: true,
+  httpAgentOptions: {
+    keepAlive: true,
+  },
+  onDemandEntries: {
+    maxInactiveAge: 25 * 1000,
+    pagesBufferLength: 2,
+  },
+  pageExtensions: ['tsx', 'ts', 'jsx', 'js'],
+  serverRuntimeConfig: {
+    // Will only be available on the server side
+    mySecret: process.env.MY_SECRET,
+  },
+  publicRuntimeConfig: {
+    // Will be available on both server and client
+    staticFolder: '/static',
+  },
 }
 
 mergeConfig(nextConfig, userConfig)
