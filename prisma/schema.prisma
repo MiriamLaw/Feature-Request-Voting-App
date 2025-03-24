@@ -1,10 +1,10 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
 datasource db {
   provider = "mysql"
   url      = env("DATABASE_URL")
-}
-
-generator client {
-  provider = "prisma-client-js"
 }
 
 model Account {
@@ -20,10 +20,10 @@ model Account {
   scope             String?
   id_token          String? @db.Text
   session_state     String?
-
-  user User @relation(fields: [userId], references: [id], onDelete: Cascade)
+  user              User    @relation(fields: [userId], references: [id], onDelete: Cascade)
 
   @@unique([provider, providerAccountId])
+  @@index([userId], map: "Account_userId_fkey")
 }
 
 model Session {
@@ -32,6 +32,8 @@ model Session {
   userId       String
   expires      DateTime
   user         User     @relation(fields: [userId], references: [id], onDelete: Cascade)
+
+  @@index([userId], map: "Session_userId_fkey")
 }
 
 model User {
@@ -41,11 +43,11 @@ model User {
   password      String?
   emailVerified DateTime?
   image         String?
-  accounts      Account[]
-  sessions      Session[]
-  features      Feature[]
-  votes         Vote[]
   role          Role      @default(USER)
+  accounts      Account[]
+  features      Feature[]
+  sessions      Session[]
+  votes         Vote[]
 }
 
 model VerificationToken {
@@ -57,28 +59,29 @@ model VerificationToken {
 }
 
 model Feature {
-  id          String   @id @default(cuid())
-  title       String   @db.VarChar(100)
-  description String   @db.VarChar(500)
-  createdAt   DateTime @default(now())
-  updatedAt   DateTime @updatedAt
-  authorId    String
-  author      User     @relation(fields: [authorId], references: [id])
-  votes       Vote[]
+  id          String        @id @default(cuid())
+  title       String        @db.VarChar(100)
+  description String        @db.VarChar(500)
+  createdAt   DateTime      @default(now())
+  updatedAt   DateTime      @updatedAt
   status      FeatureStatus @default(PENDING)
+  authorId    String
+  author      User          @relation(fields: [authorId], references: [id])
+  votes       Vote[]
 
   @@index([authorId])
 }
 
 model Vote {
   id        String   @id @default(cuid())
-  userId    String
-  featureId String
-  user      User     @relation(fields: [userId], references: [id])
-  feature   Feature  @relation(fields: [featureId], references: [id])
   createdAt DateTime @default(now())
+  featureId String
+  userId    String
+  feature   Feature  @relation(fields: [featureId], references: [id])
+  user      User     @relation(fields: [userId], references: [id])
 
   @@unique([userId, featureId])
+  @@index([featureId], map: "Vote_featureId_fkey")
 }
 
 enum Role {
@@ -91,4 +94,3 @@ enum FeatureStatus {
   PLANNED
   COMPLETED
 }
-

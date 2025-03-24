@@ -8,6 +8,12 @@ source secrets-output.env
 # Get AWS account ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
+# Get the current task definition
+TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition feature-voting-app-task)
+
+# Get the ALB DNS name
+ALB_DNS_NAME=$(aws elbv2 describe-load-balancers --names feature-voting-app-lb --query 'LoadBalancers[0].DNSName' --output text)
+
 # Set variables
 TASK_FAMILY="feature-voting-app-task"
 CONTAINER_NAME="feature-voting-app"
@@ -16,7 +22,7 @@ CONTAINER_PORT=3000
 # Register new task definition
 echo "Registering new task definition..."
 aws ecs register-task-definition \
-    --family ${TASK_FAMILY} \
+    --family feature-voting-app-task \
     --network-mode awsvpc \
     --requires-compatibilities FARGATE \
     --cpu 256 \
@@ -25,7 +31,7 @@ aws ecs register-task-definition \
     --task-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
     --container-definitions "[
         {
-            \"name\": \"${CONTAINER_NAME}\",
+            \"name\": \"feature-voting-app\",
             \"image\": \"${ECR_REPOSITORY_URI}:latest\",
             \"portMappings\": [
                 {
@@ -35,8 +41,16 @@ aws ecs register-task-definition \
             ],
             \"environment\": [
                 {
+                    \"name\": \"NODE_ENV\",
+                    \"value\": \"production\"
+                },
+                {
                     \"name\": \"DATABASE_URL\",
-                    \"value\": \"${DATABASE_URL}\"
+                    \"value\": \"mysql://root:NewSecurePassHundo@feature-voting-db.cedqquwo84hd.us-east-1.rds.amazonaws.com:3306/feature_voting\"
+                },
+                {
+                    \"name\": \"NEXTAUTH_URL\",
+                    \"value\": \"http://${ALB_DNS_NAME}\"
                 },
                 {
                     \"name\": \"NEXTAUTH_SECRET\",
@@ -49,10 +63,6 @@ aws ecs register-task-definition \
                 {
                     \"name\": \"GOOGLE_SECRET\",
                     \"value\": \"${GOOGLE_SECRET}\"
-                },
-                {
-                    \"name\": \"NODE_ENV\",
-                    \"value\": \"production\"
                 }
             ],
             \"healthCheck\": {
