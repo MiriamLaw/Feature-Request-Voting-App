@@ -11,7 +11,7 @@ CLUSTER_NAME="feature-voting-cluster"
 SERVICE_NAME="feature-voting-app-service"
 TASK_FAMILY="feature-voting-app-task"
 CONTAINER_NAME="feature-voting-app"
-CONTAINER_PORT=3000
+CONTAINER_PORT=80
 ALB_NAME="feature-voting-app-lb"
 TARGET_GROUP_NAME="feature-voting-app-tg"
 
