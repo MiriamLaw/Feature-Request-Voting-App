@@ -28,9 +28,9 @@ RUN npm run build
 FROM base AS runner
 WORKDIR /app
 
-ENV NODE_ENV production
-ENV PORT 80
-ENV HOSTNAME "0.0.0.0"
+ENV NODE_ENV=production
+# ENV PORT 80 # No longer needed, set via npm start
+ENV HOSTNAME="0.0.0.0"
 
 # Create a non-root user to run the app
 RUN addgroup --system --gid 1001 nodejs
@@ -47,11 +47,11 @@ COPY --from=builder --chown=nextjs:nodejs /app/prisma ./prisma
 COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
 
 # Expose the port the app will run on
-EXPOSE 80
+EXPOSE 3000
 
 # Add a health check
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
-  CMD curl -f http://localhost:80/api/health || exit 1
+  CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Define the command to run the app with debugging
 CMD ["sh", "-c", "echo 'Starting Next.js application...' && npm start"] 
