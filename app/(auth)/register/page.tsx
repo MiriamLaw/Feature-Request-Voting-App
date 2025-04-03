@@ -36,7 +36,7 @@ export default function RegisterPage() {
     }
 
     try {
-      const res = await fetch('/api/register', {
+      const res = await fetch('/api/auth/register', {
         method: 'POST',
         body: JSON.stringify({
           name: formData.get('name'),
