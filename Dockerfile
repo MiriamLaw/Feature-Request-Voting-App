@@ -53,5 +53,5 @@ EXPOSE 3000
 HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
-# Define the command to run the app with debugging
-CMD ["sh", "-c", "echo 'Starting Next.js application...' && npm start"] 
+# Define the command to run the app
+CMD ["node", ".next/standalone/server.js"] 
