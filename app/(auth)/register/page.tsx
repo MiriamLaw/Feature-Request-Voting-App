@@ -3,6 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { signIn } from 'next-auth/react';
+import bcrypt from 'bcrypt';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -36,43 +37,43 @@ export default function RegisterPage() {
     }
 
     try {
+      const hashedPassword = await bcrypt.hash(formData.get('password'), 10);
+
       const res = await fetch('/api/auth/register', {
         method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.get('name'),
           email: formData.get('email'),
-          password: formData.get('password'),
+          password: hashedPassword,
+          confirmPassword: formData.get('confirmPassword'),
         }),
-        headers: {
-          'Content-Type': 'application/json',
-        },
       });
 
-      if (res.ok) {
-        // Sign in the user immediately after successful registration
-        const result = await signIn('credentials', {
-          email: formData.get('email'),
-          password: formData.get('password'),
-          redirect: false,
-        });
+      const data = await res.json();
 
-        if (result?.error) {
-          setError('Error signing in after registration');
-          return;
-        }
-
-        if (result?.ok) {
-          router.push('/dashboard');
-          router.refresh();
-        }
-      } else {
-        const data = await res.json();
-        setError(data.message || 'Error during registration');
+      if (!res.ok) {
+        setError(data.error || data.message || 'Error during registration');
+        setIsLoading(false);
+        return;
       }
+
+      const result = await signIn('credentials', {
+        email: formData.get('email'),
+        password: hashedPassword,
+        redirect: false,
+      });
+
+      if (result?.error) {
+        setError(result.error);
+        setIsLoading(false);
+        return;
+      }
+
+      router.push('/dashboard');
     } catch (error) {
       console.error('Registration error:', error);
-      setError('An error occurred during registration');
-    } finally {
+      setError('An unexpected error occurred');
       setIsLoading(false);
     }
   };
