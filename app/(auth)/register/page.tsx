@@ -37,7 +37,14 @@ export default function RegisterPage() {
     }
 
     try {
-      const hashedPassword = await bcrypt.hash(formData.get('password'), 10);
+      const password = formData.get('password');
+      if (!password || typeof password !== 'string') {
+        setError('Password is required');
+        setIsLoading(false);
+        return;
+      }
+
+      const hashedPassword = await bcrypt.hash(password, 10);
 
       const res = await fetch('/api/auth/register', {
         method: 'POST',
