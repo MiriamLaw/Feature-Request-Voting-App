@@ -21,6 +21,9 @@ COPY . .
 # Generate Prisma client
 RUN npx prisma generate
 
+# Rebuild bcrypt for the current architecture
+RUN npm rebuild bcrypt --build-from-source
+
 # Build the Next.js application
 RUN npm run build
 

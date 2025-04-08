@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import bcrypt from 'bcrypt';
+import bcrypt from 'bcryptjs';
 
 export default function RegisterPage() {
   const router = useRouter();

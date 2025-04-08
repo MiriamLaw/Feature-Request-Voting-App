@@ -3,7 +3,6 @@ import { useState, useEffect } from 'react';
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import FeatureCard from '../components/FeatureCard';
-import { isAdmin } from '@/lib/auth';
 import { Feature } from '@/app/types/feature';
 
 export default function DashboardPage() {
@@ -75,7 +74,7 @@ export default function DashboardPage() {
         <div className="flex justify-between items-center mb-6">
           <h1 className="text-2xl font-bold text-gray-900">Feature Dashboard</h1>
           <div className="flex gap-4">
-            {session?.user?.email && isAdmin(session.user.email) && (
+            {session?.user?.role === 'ADMIN' && (
               <a
                 href="/admin"
                 className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-indigo-600 hover:bg-indigo-700"

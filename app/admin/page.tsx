@@ -2,7 +2,6 @@
 import { useSession, signOut } from 'next-auth/react';
 import { useRouter } from 'next/navigation';
 import { useState, useEffect } from 'react';
-import { isAdmin } from '@/lib/auth';
 import { Feature, FeatureStatus } from '@/app/types/feature';
 
 export default function AdminPage() {
@@ -13,7 +12,7 @@ export default function AdminPage() {
 
   useEffect(() => {
     // Redirect if not admin
-    if (session && !isAdmin(session.user?.email)) {
+    if (session && session.user?.role !== 'ADMIN') {
       router.push('/dashboard');
     }
   }, [session, router]);
@@ -59,7 +58,7 @@ export default function AdminPage() {
     await signOut({ redirect: true, callbackUrl: '/login' });
   };
 
-  if (!session || !isAdmin(session.user?.email)) {
+  if (!session || session.user?.role !== 'ADMIN') {
     return <div>Access denied</div>;
   }
 

@@ -2,7 +2,6 @@ import { NextResponse } from 'next/server'
 import { PATCH } from '@/app/api/features/[featureId]/status/route'
 import { getServerSession } from 'next-auth/next'
 import { prisma } from '@/lib/prisma'
-import { isAdmin } from '@/lib/auth'
 
 // Mock next-auth/next
 jest.mock('next-auth/next', () => ({
@@ -29,11 +28,6 @@ jest.mock('@/lib/prisma', () => ({
   },
 }))
 
-// Mock auth
-jest.mock('@/lib/auth', () => ({
-  isAdmin: jest.fn(),
-}))
-
 describe('Feature Status API', () => {
   beforeEach(() => {
     jest.clearAllMocks()
@@ -49,9 +43,8 @@ describe('Feature Status API', () => {
       }
 
       ;(getServerSession as jest.Mock).mockResolvedValue({
-        user: { email: 'admin@example.com' },
+        user: { role: 'ADMIN' },
       })
-      ;(isAdmin as jest.Mock).mockReturnValue(true)
       ;(prisma.feature.update as jest.Mock).mockResolvedValue(mockFeature)
 
       const request = new Request('http://localhost:3000/api/features/feature123/status', {
@@ -87,9 +80,8 @@ describe('Feature Status API', () => {
 
     it('should return 401 when not admin', async () => {
       ;(getServerSession as jest.Mock).mockResolvedValue({
-        user: { email: 'user@example.com' },
+        user: { role: 'USER' },
       })
-      ;(isAdmin as jest.Mock).mockReturnValue(false)
 
       const request = new Request('http://localhost:3000/api/features/feature123/status', {
         method: 'PATCH',
@@ -107,7 +99,7 @@ describe('Feature Status API', () => {
       ;(getServerSession as jest.Mock).mockResolvedValue({
         user: { email: 'admin@example.com' },
       })
-      ;(isAdmin as jest.Mock).mockReturnValue(true)
+      ;(prisma.feature.update as jest.Mock).mockRejectedValue(new Error('Invalid status'))
 
       const request = new Request('http://localhost:3000/api/features/feature123/status', {
         method: 'PATCH',
@@ -127,7 +119,6 @@ describe('Feature Status API', () => {
       ;(getServerSession as jest.Mock).mockResolvedValue({
         user: { email: 'admin@example.com' },
       })
-      ;(isAdmin as jest.Mock).mockReturnValue(true)
       ;(prisma.feature.update as jest.Mock).mockRejectedValue(new Error('Database error'))
 
       const request = new Request('http://localhost:3000/api/features/feature123/status', {
