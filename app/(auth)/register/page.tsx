@@ -3,7 +3,6 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { FormEvent, useState } from 'react';
 import { signIn } from 'next-auth/react';
-import bcrypt from 'bcryptjs';
 
 export default function RegisterPage() {
   const router = useRouter();
@@ -44,16 +43,13 @@ export default function RegisterPage() {
         return;
       }
 
-      const hashedPassword = await bcrypt.hash(password, 10);
-
       const res = await fetch('/api/auth/register', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
           name: formData.get('name'),
           email: formData.get('email'),
-          password: hashedPassword,
-          confirmPassword: formData.get('confirmPassword'),
+          password: password,
         }),
       });
 
@@ -67,7 +63,7 @@ export default function RegisterPage() {
 
       const result = await signIn('credentials', {
         email: formData.get('email'),
-        password: hashedPassword,
+        password: password,
         redirect: false,
       });
 

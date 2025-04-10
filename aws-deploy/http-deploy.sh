@@ -86,10 +86,10 @@ echo "Creating target group..."
       --target-type ip \
       --health-check-protocol HTTP \
       --health-check-path "/api/health" \
-      --health-check-interval-seconds 30 \
-      --health-check-timeout-seconds 5 \
+      --health-check-interval-seconds 60 \
+      --health-check-timeout-seconds 10 \
       --healthy-threshold-count 2 \
-      --unhealthy-threshold-count 2 \
+      --unhealthy-threshold-count 5 \
       --query 'TargetGroups[0].TargetGroupArn' \
       --output text)
 # fi
@@ -116,8 +116,8 @@ TASK_DEFINITION_JSON=$(cat <<-EOF
   {
     "name": "${CONTAINER_NAME}",
     "image": "${ECR_REPOSITORY_URI}:latest",
-    "cpu": 256,
-    "memory": 512,
+    "cpu": 512,
+    "memory": 1024,
     "essential": true,
     "portMappings": [
       {
@@ -162,9 +162,9 @@ TASK_DEFINITION_JSON=$(cat <<-EOF
             "curl -f http://localhost:3000/api/health || exit 1"
         ],
         "interval": 30,
-        "timeout": 5,
+        "timeout": 10,
         "retries": 3,
-        "startPeriod": 60
+        "startPeriod": 120
     }
   }
 ]
@@ -175,8 +175,8 @@ TASK_DEFINITION_ARN=$(aws ecs register-task-definition \
     --family ${TASK_FAMILY} \
     --network-mode awsvpc \
     --requires-compatibilities FARGATE \
-    --cpu 256 \
-    --memory 512 \
+    --cpu 512 \
+    --memory 1024 \
     --execution-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
     --task-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
     --container-definitions "${TASK_DEFINITION_JSON}" \
@@ -201,7 +201,7 @@ echo "Creating ECS service..."
       --platform-version LATEST \
       --network-configuration "awsvpcConfiguration={subnets=[${PUBLIC_SUBNET_1_ID},${PUBLIC_SUBNET_2_ID}],securityGroups=[${APP_SG_ID}],assignPublicIp=ENABLED}" \
       --load-balancers "targetGroupArn=${TARGET_GROUP_ARN},containerName=${CONTAINER_NAME},containerPort=${CONTAINER_PORT}" \
-      --health-check-grace-period-seconds 60 # Add grace period for container start
+      --health-check-grace-period-seconds 180 # Increased grace period for container start
 # fi
 
 # No longer needed to save ALB DNS to file, it's used directly above

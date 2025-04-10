@@ -18,8 +18,8 @@ WORKDIR /app
 COPY --from=deps /app/node_modules ./node_modules
 COPY . .
 
-# Generate Prisma client
-RUN npx prisma generate
+# Generate Prisma client with explicit schema path
+RUN npx prisma generate --schema=./prisma/schema.prisma
 
 # Rebuild bcrypt for the current architecture
 RUN npm rebuild bcrypt --build-from-source
@@ -52,8 +52,8 @@ COPY --from=builder --chown=nextjs:nodejs /app/next.config.mjs ./next.config.mjs
 # Expose the port the app will run on
 EXPOSE 3000
 
-# Add a health check
-HEALTHCHECK --interval=30s --timeout=5s --start-period=60s --retries=3 \
+# Add a health check with increased timeout
+HEALTHCHECK --interval=30s --timeout=10s --start-period=120s --retries=3 \
   CMD curl -f http://localhost:3000/api/health || exit 1
 
 # Define the command to run the app

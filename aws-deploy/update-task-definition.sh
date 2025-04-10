@@ -1,84 +1,74 @@
 #!/bin/bash
 
-# Source environment variables
-source ecr-output.env
-source rds-output.env
-source secrets-output.env
+# Set variables
+APP_NAME="feature-voting-app"
+CLUSTER_NAME="feature-voting-cluster"
+SERVICE_NAME="feature-voting-app-service"
+ALB_NAME="feature-voting-app-lb"
+TARGET_GROUP_NAME="feature-voting-app-tg"
+SECRET_ARN="arn:aws:secretsmanager:us-east-1:753561063721:secret:feature-voting-app-secrets-Zbqr22"
 
 # Get AWS account ID
 AWS_ACCOUNT_ID=$(aws sts get-caller-identity --query Account --output text)
 
-# Get the current task definition
-TASK_DEFINITION=$(aws ecs describe-task-definition --task-definition feature-voting-app-task)
-
-# Get the ALB DNS name
-ALB_DNS_NAME=$(aws elbv2 describe-load-balancers --names feature-voting-app-lb --query 'LoadBalancers[0].DNSName' --output text)
-
-# Set variables
-TASK_FAMILY="feature-voting-app-task"
-CONTAINER_NAME="feature-voting-app"
-CONTAINER_PORT=3000
+# Get ALB DNS name
+ALB_DNS_NAME=$(aws elbv2 describe-load-balancers --names $ALB_NAME --query 'LoadBalancers[0].DNSName' --output text)
 
 # Register new task definition
-echo "Registering new task definition..."
 aws ecs register-task-definition \
-    --family feature-voting-app-task \
+    --family ${APP_NAME}-task \
     --network-mode awsvpc \
     --requires-compatibilities FARGATE \
     --cpu 256 \
     --memory 512 \
-    --execution-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
     --task-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
+    --execution-role-arn arn:aws:iam::${AWS_ACCOUNT_ID}:role/ecsTaskExecutionRole \
     --container-definitions "[
         {
-            \"name\": \"feature-voting-app\",
-            \"image\": \"${ECR_REPOSITORY_URI}:latest\",
+            \"name\": \"${APP_NAME}\",
+            \"image\": \"${AWS_ACCOUNT_ID}.dkr.ecr.us-east-1.amazonaws.com/${APP_NAME}:latest\",
+            \"cpu\": 256,
+            \"memory\": 512,
             \"portMappings\": [
                 {
-                    \"containerPort\": ${CONTAINER_PORT},
+                    \"containerPort\": 3000,
+                    \"hostPort\": 3000,
                     \"protocol\": \"tcp\"
                 }
             ],
+            \"essential\": true,
             \"environment\": [
                 {
                     \"name\": \"NODE_ENV\",
                     \"value\": \"production\"
                 },
                 {
-                    \"name\": \"DATABASE_URL\",
-                    \"value\": \"mysql://root:NewSecurePassHundo@feature-voting-db.cedqquwo84hd.us-east-1.rds.amazonaws.com:3306/feature_voting\"
-                },
-                {
                     \"name\": \"NEXTAUTH_URL\",
                     \"value\": \"http://${ALB_DNS_NAME}\"
+                }
+            ],
+            \"secrets\": [
+                {
+                    \"name\": \"DATABASE_URL\",
+                    \"valueFrom\": \"${SECRET_ARN}:DATABASE_URL::\"
                 },
                 {
                     \"name\": \"NEXTAUTH_SECRET\",
-                    \"value\": \"${NEXTAUTH_SECRET}\"
+                    \"valueFrom\": \"${SECRET_ARN}:NEXTAUTH_SECRET::\"
                 },
                 {
                     \"name\": \"GOOGLE_ID\",
-                    \"value\": \"${GOOGLE_ID}\"
+                    \"valueFrom\": \"${SECRET_ARN}:GOOGLE_ID::\"
                 },
                 {
                     \"name\": \"GOOGLE_SECRET\",
-                    \"value\": \"${GOOGLE_SECRET}\"
+                    \"valueFrom\": \"${SECRET_ARN}:GOOGLE_SECRET::\"
                 }
             ],
-            \"healthCheck\": {
-                \"command\": [
-                    \"CMD-SHELL\",
-                    \"curl -f http://localhost:${CONTAINER_PORT}/api/health || exit 1\"
-                ],
-                \"interval\": 30,
-                \"timeout\": 5,
-                \"retries\": 3,
-                \"startPeriod\": 60
-            },
             \"logConfiguration\": {
                 \"logDriver\": \"awslogs\",
                 \"options\": {
-                    \"awslogs-group\": \"/ecs/feature-voting-app\",
+                    \"awslogs-group\": \"/ecs/${APP_NAME}\",
                     \"awslogs-region\": \"us-east-1\",
                     \"awslogs-stream-prefix\": \"ecs\"
                 }
@@ -86,4 +76,16 @@ aws ecs register-task-definition \
         }
     ]"
 
-echo "Task definition updated successfully!" 
+# Get the new task definition ARN
+NEW_TASK_DEF_ARN=$(aws ecs describe-task-definition \
+    --task-definition ${APP_NAME}-task \
+    --query 'taskDefinition.taskDefinitionArn' \
+    --output text)
+
+# Update the service to use the new task definition
+aws ecs update-service \
+    --cluster ${CLUSTER_NAME} \
+    --service ${SERVICE_NAME} \
+    --task-definition ${NEW_TASK_DEF_ARN}
+
+echo "Task definition updated and service is being updated with the new task definition." 
