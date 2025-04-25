@@ -9,7 +9,8 @@
     "lint": "next lint",
     "test": "jest",
     "test:watch": "jest --watch",
-    "test:coverage": "jest --coverage"
+    "test:coverage": "jest --coverage",
+    "docker:cleanup": "./docker-cleanup.sh"
   },
   "dependencies": {
     "@auth/core": "^0.34.2",
